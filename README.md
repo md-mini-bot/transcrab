@@ -56,19 +56,39 @@ Follow the steps below. You may also refer to `scripts/BOOTSTRAP.md`.
   - `sum <url>`: summary only
   - `tr:<lang> <url>`: translate to another language
 
-### 3) Pipeline responsibilities
+### 3) How to run the pipeline (built-in scripts)
 
-On `URL + crab`:
+This template already includes scripts you can call:
 
-- Fetch and extract content (start with simple fetch; fall back to stronger extraction if needed)
-- Convert to Markdown while preserving structure
-- Translate Markdown to target language
-  - Preserve Markdown structure
-  - Do not translate code blocks / commands / URLs / file paths
-- Write under `content/articles/<slug>/`:
-  - `source.md`, `<lang>.md` (e.g. `zh.md`), `meta.json`
-- Commit + push to `main`
-- Reply to the user with the resulting page URL
+- `scripts/add-url.mjs`: the main pipeline (fetch → extract → markdown → translate → write files)
+- `scripts/run-crab.sh`: thin wrapper around `add-url.mjs`
+- `scripts/sync-upstream.sh`: keep a fork up to date with template changes
+
+### 4) Translation mechanism (what actually happens)
+
+Translation is implemented inside `scripts/add-url.mjs`:
+
+- It builds a strict translation prompt (`buildTranslatePrompt`) that instructs the model to:
+  - preserve Markdown structure
+  - not translate code blocks / commands / URLs / file paths
+  - keep meaning first but read naturally (roughly 6/4)
+- It then invokes OpenClaw via CLI:
+  - reads the current default model (`openclaw models status --json`)
+  - temporarily switches to the requested model (`openclaw models set ...`) if needed
+  - runs an agent turn (`openclaw agent --agent main --message <prompt>`)
+  - switches the default model back
+
+Note: `openclaw agent` uses your running OpenClaw gateway and your configured model auth (OAuth/API key) stored in OpenClaw.
+
+### 5) Output format
+
+On `URL + crab`, write under `content/articles/<slug>/`:
+
+- `source.md`
+- `<lang>.md` (e.g. `zh.md`)
+- `meta.json`
+
+Then commit + push to `main` and reply with the deployed page URL.
 
 ---
 

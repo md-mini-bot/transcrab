@@ -13,6 +13,12 @@ After setup, the human can:
 
 …and you will fetch → extract → markdown → translate → commit/push, and return a deployed page URL.
 
+## Built-in scripts in this repo
+
+- `scripts/add-url.mjs` — main pipeline (fetch → extract → markdown → translate → write files)
+- `scripts/run-crab.sh` — wrapper for `add-url.mjs`
+- `scripts/sync-upstream.sh` — sync template updates into a fork
+
 ## One-time setup checklist
 
 1) Confirm prerequisites
@@ -46,17 +52,23 @@ After setup, the human can:
 
 On `URL + crab`:
 
-- Fetch and extract main content
-- Convert HTML → Markdown (preserve structure as much as possible)
-- Translate to target language
-  - Keep Markdown structure
-  - Do not translate code blocks, commands, URLs, file paths
-- Write files under `content/articles/<slug>/`:
-  - `source.md`
-  - `<lang>.md` (e.g. `zh.md`)
-  - `meta.json`
-- Commit and push to `main`
-- Reply with the deployed page URL
+- Run the pipeline script:
+
+```bash
+./scripts/run-crab.sh <url> --lang zh --model openai-codex/gpt-5.2
+```
+
+- Then commit and push to `main`.
+- Reply with the deployed page URL.
+
+## Translation rules (what to instruct the model)
+
+The repo already contains the translation prompt logic in `scripts/add-url.mjs` (`buildTranslatePrompt`).
+It enforces:
+
+- keep Markdown structure
+- do not translate code blocks, commands, URLs, file paths
+- meaning-first but reads naturally (roughly 6/4)
 
 ## Updates
 
