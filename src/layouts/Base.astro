@@ -31,6 +31,8 @@ const { title = 'TransCrab', description } = Astro.props;
       }
 
       a { color: inherit; }
+      a.footer-link { color: rgba(60, 140, 210, .85); text-decoration: none; }
+      a.footer-link:hover { text-decoration: underline; }
 
       h1 { line-height: 1.25; margin: 0 0 0.5rem 0; }
       h2, h3 { line-height: 1.35; margin-top: 2rem; }
@@ -71,7 +73,7 @@ const { title = 'TransCrab', description } = Astro.props;
     <slot />
 
     <footer>
-      Made with ❤️ by @onevcat.
+      Made with ❤️ by <a class="footer-link" href="https://x.com/onevcat" target="_blank" rel="noreferrer">@onevcat</a>.
     </footer>
 
     <script type="module">
