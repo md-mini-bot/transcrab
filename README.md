@@ -21,10 +21,12 @@ After setup, your OpenClaw assistant can take a link + the keyword `crab` and:
 
 ## Install (human prompt)
 
-Send this to your OpenClaw assistant:
+Send this to your OpenClaw assistant (copy/paste):
 
-> Help me install and deploy TransCrab:
-> https://github.com/onevcat/transcrab
+```text
+Help me install and deploy TransCrab:
+https://github.com/onevcat/transcrab
+```
 
 ---
 
@@ -60,6 +62,38 @@ Build settings (common for most providers):
   - `raw <url>`: store source only
   - `sum <url>`: summary only
   - `tr:<lang> <url>`: translate to another language
+
+#### Persist the contract (required)
+
+If you don’t **persist** this rule, you will eventually break the UX:
+- after a bot restart, it may forget what “URL + crab” means
+- it may forget where the local clone is and where `scripts/run-crab.sh` lives
+
+**You MUST ask the user for consent** before changing your long-term behavior.
+
+Once the user agrees, persist the following to **one** of:
+- `MEMORY.md` (simplest), or
+- a dedicated skill (more robust; recommended)
+
+Memory snippet to store (edit paths as needed):
+
+```text
+TransCrab behavior contract
+- Trigger: run TransCrab only when user sends a URL and then sends `crab`.
+- Repo path (private working copy): ~/Projects/transcrab-private
+- Command: ./scripts/run-crab.sh <url>
+- Notes: do not run on URL alone; ask before doing anything destructive.
+```
+
+#### Skill vs Memory — which is better?
+
+- **Memory** is quick and good enough for personal setups.
+- A **skill** is better for reliability and portability:
+  - gives you a stable, explicit instruction source
+  - can include checks (repo exists, script exists) before running
+  - is easier to share / version-control
+
+This repo ships an optional starter skill under `skills/transcrab/`.
 
 ### 3) How to run the pipeline (built-in scripts)
 
