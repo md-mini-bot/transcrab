@@ -110,6 +110,65 @@ async function htmlToMarkdown(html, baseUrl) {
     emDelimiter: '*',
   });
 
+  // Preserve language info for fenced code blocks when possible.
+  // Many docs sites render code blocks like:
+  //   <pre class="language-csharp"><code>...</code></pre>
+  // or wrap them with a div like:
+  //   <div class="language-csharp ext-cs"><pre>...</pre></div>
+  // Readability may rewrite some wrappers, so we check multiple places.
+  turndown.addRule('fencedCodeBlockWithLanguage', {
+    filter(node) {
+      return (
+        node.nodeName === 'PRE' &&
+        node.textContent &&
+        node.textContent.trim().length > 0
+      );
+    },
+    replacement(_content, node) {
+      const pre = node;
+      const codeEl = pre.querySelector?.('code') || null;
+
+      const classSources = [
+        pre.getAttribute?.('class') || '',
+        codeEl?.getAttribute?.('class') || '',
+        pre.parentElement?.getAttribute?.('class') || '',
+      ].filter(Boolean);
+
+      function pickLang(classes) {
+        const joined = classes.join(' ');
+        // Common: language-xxx / lang-xxx
+        let m = joined.match(/\b(?:language|lang)-([a-z0-9_+-]+)\b/i);
+        if (m) return normalizeLang(m[1]);
+        // Some sites: ext-cs, ext-js, etc.
+        m = joined.match(/\bext-([a-z0-9_+-]+)\b/i);
+        if (m) return normalizeLang(m[1]);
+        return null;
+      }
+
+      function normalizeLang(lang) {
+        const l = String(lang).toLowerCase();
+        // A few pragmatic aliases seen on docs sites.
+        if (l === 'cs') return 'csharp';
+        if (l === 'c#') return 'csharp';
+        if (l === 'js') return 'javascript';
+        if (l === 'ts') return 'typescript';
+        if (l === 'sh') return 'bash';
+        if (l === 'shell') return 'bash';
+        if (l === 'py') return 'python';
+        if (l === 'kt') return 'kotlin';
+        return l;
+      }
+
+      const lang = pickLang(classSources);
+      const raw = (codeEl ? codeEl.textContent : pre.textContent) || '';
+      const text = raw.replace(/\n+$/g, '');
+
+      const fence = '```';
+      const info = lang ? lang : '';
+      return `\n${fence}${info}\n${text}\n${fence}\n`;
+    },
+  });
+
   // Keep links and images as-is
   const md = turndown.turndown(contentHtml);
   return { title: title.trim(), markdown: md.trim() + '\n' };
