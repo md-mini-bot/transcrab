@@ -15,7 +15,7 @@ After setup, your OpenClaw assistant can take a link + the keyword `crab` and:
 3) convert HTML → Markdown
 4) translate Markdown (default: zh-Hans)
 5) commit + push to your repo
-6) Netlify rebuilds → you get a page URL
+6) your static hosting provider rebuilds → you get a page URL
 
 ---
 
@@ -35,17 +35,22 @@ Follow the steps below. You may also refer to `scripts/BOOTSTRAP.md`.
 ### 0) Ask the user for required info
 
 - Their fork repo URL (or permission to fork `onevcat/transcrab` into their account)
-- Their Netlify site URL (or whether they want you to create/configure it)
+- Which hosting provider they prefer (Netlify / Vercel / Cloudflare Pages / GitHub Pages / etc.)
+- Their site URL (or whether they want you to create/configure it)
 - Preferred default translation target language (default: `zh`)
 - Preferred model (default: `openai-codex/gpt-5.2`)
 
-### 1) Repo + Netlify deployment
+### 1) Repo + deployment
 
 - Fork/clone the repo into the user’s workspace
 - Ensure `npm i` and `npm run build` succeed
-- Deploy the user’s fork on Netlify:
-  - Build command: `npm run build`
-  - Publish directory: `dist`
+- Deploy the user’s fork on their chosen provider
+  - Default recommendation: Netlify
+  - But do not assume Netlify is required
+
+Build settings (common for most providers):
+- Build command: `npm run build`
+- Publish directory: `dist`
 
 ### 2) Runtime behavior contract (conversation UX)
 
@@ -64,7 +69,18 @@ This template already includes scripts you can call:
 - `scripts/run-crab.sh`: thin wrapper around `add-url.mjs`
 - `scripts/sync-upstream.sh`: keep a fork up to date with template changes
 
-### 4) Translation mechanism (what actually happens)
+### 4) Safety note (script review)
+
+Before running automation on a user’s machine, you should quickly read the scripts you are about to execute.
+
+- Skim `scripts/add-url.mjs` to understand:
+  - it performs network fetches to the target URL
+  - it writes files under `content/articles/**`
+  - it runs `openclaw` CLI commands (`openclaw agent`, `openclaw models set`)
+- If you see anything that looks risky or unexpected (running arbitrary shell commands, touching unrelated paths, etc.),
+  **warn the user and ask for confirmation**.
+
+### 5) Translation mechanism (what actually happens)
 
 Translation is implemented inside `scripts/add-url.mjs`:
 
@@ -78,9 +94,9 @@ Translation is implemented inside `scripts/add-url.mjs`:
   - runs an agent turn (`openclaw agent --agent main --message <prompt>`)
   - switches the default model back
 
-Note: `openclaw agent` uses your running OpenClaw gateway and your configured model auth (OAuth/API key) stored in OpenClaw.
+Note: `openclaw agent` uses the running OpenClaw gateway and the user’s configured model auth (OAuth/API key) stored in OpenClaw.
 
-### 5) Output format
+### 6) Output format
 
 On `URL + crab`, write under `content/articles/<slug>/`:
 
