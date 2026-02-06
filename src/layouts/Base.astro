@@ -163,7 +163,8 @@ const { title = 'TransCrab', description } = Astro.props;
       // Code highlighting (client-side)
       // Theme is loaded via CSS (see <head>).
       try {
-        const { default: hljs } = await import('highlight.js');
+        // Use an ESM loader for browser execution. (Bare specifiers like "highlight.js" won't resolve in the browser.)
+        const { default: hljs } = await import('https://esm.sh/highlight.js@11.9.0');
 
         // If a block declares a language (```swift), respect it.
         // Otherwise do NOT auto-detect to avoid random languages like abnf/apache/maxima.
