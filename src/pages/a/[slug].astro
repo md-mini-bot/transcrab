@@ -1,4 +1,5 @@
 ---
+import Base from '../../layouts/Base.astro';
 import { listArticles, getArticle } from '../../shared/content.js';
 
 export async function getStaticPaths() {
@@ -13,31 +14,13 @@ if (!article) {
 }
 const { html, title, sourceUrl, date } = article;
 ---
-<html lang="zh-Hans">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
-    <style>
-      :root { color-scheme: light dark; }
-      body { font-family: ui-sans-serif, system-ui, -apple-system; margin: 2rem auto; max-width: 900px; padding: 0 1rem; }
-      a { color: inherit; }
-      article :global(img) { max-width: 100%; height: auto; }
-      .meta { opacity: .75; font-size: .9rem; margin-top: .25rem; }
-      .top { margin-bottom: 1.5rem; }
-      .nav a { margin-right: .75rem; }
-    </style>
-  </head>
-  <body>
-    <div class="top">
-      <div class="nav"><a href="/">← 返回</a></div>
-      <h1>{title}</h1>
-      <div class="meta">
-        {date ? <span>{date}</span> : null}
-        {sourceUrl ? <span> · <a href={sourceUrl} target="_blank" rel="noreferrer">原文链接</a></span> : null}
-      </div>
-    </div>
+<Base title={title}>
+  <div class="nav"><a href="/">← 返回</a></div>
+  <h1>{title}</h1>
+  <div class="meta">
+    {date ? <span>{date}</span> : null}
+    {sourceUrl ? <span> · <a href={sourceUrl} target="_blank" rel="noreferrer">原文链接</a></span> : null}
+  </div>
 
-    <article set:html={html} />
-  </body>
-</html>
+  <article set:html={html} />
+</Base>

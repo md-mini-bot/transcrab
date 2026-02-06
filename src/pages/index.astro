@@ -1,34 +1,26 @@
 ---
+import Base from '../layouts/Base.astro';
 import { listArticles } from '../shared/content.js';
 const articles = await listArticles();
 ---
-<html lang="zh-Hans">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>TransCrab</title>
-    <style>
-      :root { color-scheme: light dark; }
-      body { font-family: ui-sans-serif, system-ui, -apple-system; margin: 2rem auto; max-width: 900px; padding: 0 1rem; }
-      a { color: inherit; }
-      .item { padding: 1rem 0; border-bottom: 1px solid rgba(127,127,127,.25); }
-      .meta { opacity: .75; font-size: .9rem; }
-    </style>
-  </head>
-  <body>
-    <h1>TransCrab</h1>
-    <p class="meta">中文翻译归档（本地生成，静态部署）</p>
+<Base title="TransCrab" description="中文翻译归档（本地生成，静态部署）">
+  <h1>TransCrab</h1>
+  <p class="meta">中文翻译归档（本地生成，静态部署）</p>
 
-    {articles.length === 0 ? <p>暂无文章。</p> : null}
+  {articles.length === 0 ? <p>暂无文章。</p> : null}
 
-    {articles.map(a => (
-      <div class="item">
-        <div><a href={`/a/${a.slug}`}>{a.title}</a></div>
-        <div class="meta">
-          <span>{a.date ?? ''}</span>
-          {a.sourceUrl ? <span> · <a href={a.sourceUrl} target="_blank" rel="noreferrer">原文</a></span> : null}
-        </div>
+  {articles.map((a) => (
+    <div style="padding: 1rem 0; border-bottom: 1px solid rgba(127,127,127,.25);">
+      <div><a href={`/a/${a.slug}`}>{a.title}</a></div>
+      <div class="meta">
+        <span>{a.date ?? ''}</span>
+        {a.sourceUrl ? (
+          <span>
+            {' '}·{' '}
+            <a href={a.sourceUrl} target="_blank" rel="noreferrer">原文</a>
+          </span>
+        ) : null}
       </div>
-    ))}
-  </body>
-</html>
+    </div>
+  ))}
+</Base>

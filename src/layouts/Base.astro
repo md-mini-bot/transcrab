@@ -1,0 +1,86 @@
+---
+const { title = 'TransCrab', description } = Astro.props;
+---
+<html lang="zh-Hans">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    {description ? <meta name="description" content={description} /> : null}
+    <style>
+      :root {
+        color-scheme: light dark;
+        --page-max: 900px;
+        --text-max: 760px;
+      }
+
+      body {
+        font-family: ui-sans-serif, system-ui, -apple-system;
+        margin: 2.2rem auto;
+        max-width: var(--page-max);
+        padding: 0 1.25rem;
+        line-height: 1.85;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Better Chinese + Latin spacing when supported */
+      article {
+        max-width: var(--text-max);
+        text-spacing: auto;
+      }
+
+      a { color: inherit; }
+
+      h1 { line-height: 1.25; margin: 0 0 0.5rem 0; }
+      h2, h3 { line-height: 1.35; margin-top: 2rem; }
+
+      p { margin: 0.85rem 0; }
+      ul, ol { padding-left: 1.4rem; }
+      li { margin: 0.25rem 0; }
+
+      pre {
+        padding: 0.9rem 1rem;
+        border-radius: 10px;
+        overflow: auto;
+        line-height: 1.6;
+        border: 1px solid rgba(127,127,127,.22);
+        background: rgba(127,127,127,.08);
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 0.95em;
+      }
+
+      hr { border: none; border-top: 1px solid rgba(127,127,127,.25); margin: 2rem 0; }
+
+      .meta { opacity: .72; font-size: .92rem; margin-top: .25rem; }
+      .nav a { margin-right: .75rem; }
+
+      footer {
+        margin-top: 3rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid rgba(127,127,127,.18);
+        opacity: .6;
+        font-size: .85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <slot />
+
+    <footer>
+      Made with ❤️ by @onevcat.
+    </footer>
+
+    <script type="module">
+      import pangu from 'pangu';
+      // Add spacing between CJK and half-width chars (per Chinese copywriting guidelines).
+      // Run after render to avoid fighting with markdown.
+      try {
+        pangu.spacingElementByElement(document.body);
+      } catch {}
+    </script>
+  </body>
+</html>
