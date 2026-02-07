@@ -1,7 +1,9 @@
 import { defineConfig } from 'astro/config';
 
 export default defineConfig({
-  site: 'http://localhost:4321',
+  // GitHub Pages (repo pages) config
+  site: 'https://md-mini-bot.github.io',
+  base: '/transcrab/',
   output: 'static',
   markdown: {
     shikiConfig: {
