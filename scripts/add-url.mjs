@@ -170,9 +170,13 @@ async function htmlToMarkdown(html, baseUrl) {
         return l;
       }
 
-      const lang = pickLang(classSources);
+      let lang = pickLang(classSources);
       const raw = (codeEl ? codeEl.textContent : pre.textContent) || '';
       const text = raw.replace(/\n+$/g, '');
+
+      // If we cannot extract any explicit language info, try a conservative heuristic.
+      // This is ONLY a fallback when there are no language tags.
+      if (!lang) lang = guessLangFromCode(text);
 
       const fence = '```';
       const info = lang ? lang : '';
@@ -195,6 +199,108 @@ function normalizeLangHint(lang) {
   if (l === 'py') return 'python';
   if (l === 'kt') return 'kotlin';
   return l;
+}
+
+// Conservative language guessing for code blocks when the source HTML provides no language tags.
+// Returns a highlight.js-compatible language id (e.g. "javascript", "tsx"), or null.
+function guessLangFromCode(code) {
+  const s = String(code || '');
+  const t = s.trim();
+  if (!t) return null;
+
+  // Early: shebangs
+  if (/^#!\/(usr\/bin\/env\s+)?(bash|sh)\b/m.test(t)) return 'bash';
+  if (/^#!\/(usr\/bin\/env\s+)?python\b/m.test(t)) return 'python';
+  if (/^#!\/(usr\/bin\/env\s+)?node\b/m.test(t)) return 'javascript';
+
+  // Helper: score by strong signals. Keep this conservative to avoid random guesses.
+  const scores = new Map();
+  const add = (lang, n) => scores.set(lang, (scores.get(lang) || 0) + n);
+
+  // JS / TS / JSX / TSX
+  if (/\b(useState|useEffect|useMemo|useCallback|useRef|createContext)\s*\(/.test(t)) add('javascript', 3);
+  if (/\b(import|export)\b/.test(t) && /\bfrom\b/.test(t)) add('javascript', 2);
+  if (/\bmodule\.exports\b|\brequire\s*\(/.test(t)) add('javascript', 2);
+  if (/\bfunction\b\s+[A-Za-z0-9_]+\s*\(/.test(t) && /\bconst\b|\blet\b/.test(t)) add('javascript', 1);
+  // JSX-ish
+  if (/\breturn\s*\(<[A-Za-z]/.test(t) || /<[A-Za-z][^>]*>/.test(t)) add('jsx', 4);
+  // TS-ish
+  if (/\b(interface|type)\s+[A-Za-z0-9_]+\s*=/.test(t)) add('typescript', 4);
+  if (/\binterface\s+[A-Za-z0-9_]+\b/.test(t)) add('typescript', 4);
+  if (/\b(as\s+const|satisfies)\b/.test(t)) add('typescript', 3);
+  if (/\b(enum)\s+[A-Za-z0-9_]+\b/.test(t)) add('typescript', 2);
+  // Type annotations like: foo: string, (x: Foo) =>
+  if (/(^|[\(,])\s*[A-Za-z_][A-Za-z0-9_]*\s*:\s*[A-Za-z_][A-Za-z0-9_<>\[\]\|& ]{0,60}/.test(t)) add('typescript', 2);
+
+  // If JSX and TS both present, assume TSX.
+  if ((scores.get('jsx') || 0) >= 4 && (scores.get('typescript') || 0) >= 3) {
+    add('tsx', 6);
+  }
+
+  // Python
+  if (/^\s*def\s+[A-Za-z_][A-Za-z0-9_]*\s*\(/m.test(t)) add('python', 4);
+  if (/^\s*class\s+[A-Za-z_][A-Za-z0-9_]*\s*\(?/m.test(t) && /:\s*$/m.test(t)) add('python', 2);
+  if (/\b(self|None|elif|yield)\b/.test(t)) add('python', 2);
+
+  // Bash / shell
+  if (/^\s*(set -e|set -euxo pipefail)\b/m.test(t)) add('bash', 3);
+  if (/\b(echo|grep|sed|awk|curl|chmod|chown)\b/.test(t) && /\n/.test(t)) add('bash', 2);
+  if (/\b(fi|then|elif)\b/.test(t) && /\bif\b/.test(t)) add('bash', 1);
+
+  // Go
+  if (/^\s*package\s+\w+/m.test(t) && /^\s*func\s+\w+\s*\(/m.test(t)) add('go', 5);
+  if (/\b:=\b/.test(t) && /\bfmt\./.test(t)) add('go', 2);
+
+  // Rust
+  if (/^\s*fn\s+main\s*\(\)\s*\{/m.test(t) || /\bprintln!\s*!\(/.test(t)) add('rust', 5);
+  if (/\buse\s+[a-zA-Z0-9_:]+;/.test(t) && /\blet\s+mut\b/.test(t)) add('rust', 2);
+
+  // Swift
+  if (/^\s*import\s+(Foundation|SwiftUI|Combine)\b/m.test(t)) add('swift', 4);
+  if (/\b(let|var)\b\s+[A-Za-z_][A-Za-z0-9_]*\s*:\s*[A-Za-z_][A-Za-z0-9_<>\[\]\? ]+/.test(t)) add('swift', 2);
+  if (/\bfunc\s+[A-Za-z_][A-Za-z0-9_]*\s*\(/.test(t) && /\bguard\b/.test(t)) add('swift', 2);
+
+  // C#
+  if (/^\s*using\s+System\b/m.test(t) || /\bnamespace\s+\w+/.test(t)) add('csharp', 4);
+  if (/\bpublic\s+(class|struct|interface)\b/.test(t) && /\bget;\s*set;\b/.test(t)) add('csharp', 2);
+
+  // Kotlin
+  if (/^\s*(fun|class)\s+\w+/m.test(t) && /\bval\b|\bvar\b/.test(t) && /\bwhen\b/.test(t)) add('kotlin', 4);
+
+  // Choose best only if confidence is high enough.
+  const entries = [...scores.entries()].sort((a, b) => b[1] - a[1]);
+  if (entries.length === 0) return null;
+  const [bestLang, bestScore] = entries[0];
+  const secondScore = entries[1]?.[1] ?? 0;
+
+  // Thresholds: conservative, but allow very strong single-signal languages.
+  // - JSX detection is fairly distinctive (angle-bracket tags / return <...)
+  // - Python "def" is also distinctive
+  const minScoreByLang = {
+    jsx: 4,
+    tsx: 6,
+    javascript: 4,
+    typescript: 4,
+    python: 4,
+    bash: 4,
+    go: 5,
+    rust: 5,
+    swift: 5,
+    csharp: 5,
+    kotlin: 5,
+  };
+  const minScore = minScoreByLang[bestLang] ?? 5;
+
+  if (bestScore < minScore) return null;
+  // If the winner is only barely ahead, require higher confidence.
+  if (bestScore - secondScore < 2 && bestScore < (minScore + 2)) return null;
+
+  // Collapse jsx/tsx into highlight.js names
+  if (bestLang === 'jsx') return 'jsx';
+  if (bestLang === 'tsx') return 'tsx';
+  if (bestLang === 'typescript') return 'typescript';
+  if (bestLang === 'javascript') return 'javascript';
+  return bestLang;
 }
 
 function detectLangFromClass(className) {
